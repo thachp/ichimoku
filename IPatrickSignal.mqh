@@ -1,8 +1,7 @@
 //+------------------------------------------------------------------+
 //|                                               iPatrickSignal.mq5 |
 //|                                                       GPL License|
-//|                   I take donation via Paypal at paypal@ethach.com|
-//|                    Use at your own risk! Not a holy grail project|
+//|                            Use at your own risk! Not a holy grail|
 //+------------------------------------------------------------------+
 #property copyright "GPL License"
 
