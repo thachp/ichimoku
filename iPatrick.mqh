@@ -20,7 +20,6 @@ private:
    int               Magic_No;   //Expert Magic Number
    int               Chk_Margin; //Margin Check before placing trade? (1 or 0)
    int               Ichimoku_handle;   
-   int               IPriceAction_handle;   
    int               IATR_handle;
    int               Iband_handle;
          
@@ -37,7 +36,6 @@ private:
    double            ichiSenkouA[];
    double            ichiSenkouB[];
    double            ichiChikou[];
-   double            ipriceAction[];   
    double            iatr_val[];
    
    double            iband_upper[]; 
@@ -136,7 +134,6 @@ void IPatrick::IPatrick()
    ZeroMemory(ichiSenkouB);
    ZeroMemory(ichiChikou);   
    
-   ZeroMemory(ipriceAction);
    ZeroMemory(iatr_val);
    ZeroMemory(iband_middle);
    ZeroMemory(iband_lower);
@@ -182,8 +179,6 @@ bool IPatrick::getBuffers()
    //--- Filling the array Chinkouspan with the current values of CHINKOUSPAN_LINE
    if(!CopyBufferAsSeries(Ichimoku_handle,4,start_from,number_copy,true,ichiChikou)) return(false);
 
-   if(!CopyBufferAsSeries(IPriceAction_handle,2,start_from,number_copy,true,ipriceAction)) return(false);
-      
    if(!CopyBufferAsSeries(IATR_handle,0,start_from,number_copy,true,iatr_val)) return(false);
    
    //-- Get band --//
@@ -266,13 +261,12 @@ void IPatrick::doInit(int entry_tenkan, int entry_kijun, int entry_senkou)
   {  
   
    Ichimoku_handle = iIchimoku(symbol,period,entry_tenkan,entry_kijun,entry_senkou);
-   IPriceAction_handle = iCustom(symbol,period,"iPatrickAction");
    IATR_handle = iATR(NULL,period,24);   
       
    Iband_handle = iBands(symbol,period,20,0,2.0,PRICE_CLOSE);
 
    //--- what if handle returns Invalid Handle
-   if(Ichimoku_handle<0 || IPriceAction_handle < 0)
+   if(Ichimoku_handle<0)
      {
       Errormsg="Error Creating Handles for indicators";
       Errcode=GetLastError();
@@ -291,7 +285,6 @@ void IPatrick::doUninit()
   {
    //--- release our indicator handles
    IndicatorRelease(Ichimoku_handle);
-   IndicatorRelease(IPriceAction_handle);
    IndicatorRelease(IATR_handle);
    IndicatorRelease(Iband_handle);   
   }
@@ -308,8 +301,7 @@ void IPatrick::calculateTrend()
    future_kumo = getFutureKumoTrend(ichiTenkan[0], ichiKijun[0], mratesHigherRange); 
    tenkan_kumo = getTenkanCurrentKumoRelationship(ichiTenkan[0], ichiSenkouA[0], ichiSenkouB[0]);
    kijun_kumo = getKijunCurrentKumoRelationship(ichiKijun[0], ichiSenkouA[0], ichiSenkouB[0]);
-   action_trend = get_price_action_trend(ipriceAction);   
-                                   
+
    debugMessage[1]= "price kumo : Trend "+get_trend_string(price_kumo);  //+" : " + DoubleToString(ichiSenkouA[0],6) + " : " + DoubleToString(ichiSenkouB[0],6);
    debugMessage[2]= "tenkan kijun : Trend "+get_trend_string(tenkan_kijun); //+" : " + DoubleToString(ichiTenkan[0],6) + " : " + DoubleToString(ichiKijun[0],6);
    debugMessage[3]= "chikou price : Trend "+get_trend_string(chikou_price);      
@@ -336,18 +328,6 @@ void IPatrick::calculateTrend()
    }
            
    debugMessage[10]="bollinger band: Trend " + get_trend_string(band_trend); // + " Upper " + DoubleToString(iband_upper[0]) + " , Middle " + DoubleToString(iband_middle[0]) + ", Close " + DoubleToString(iband_lower[0]);   
-
-   //for(int i = 0; i < 5; i++)
-   //{
-   //debugMessage[i+13] = "  price action : " + get_price_action((int) ipriceAction[i]);         
-   //}         
-      
-   if(ipriceAction[0] > 0.0 && ipriceAction[0] <= 7.0)
-   {
-      drawPurchase(get_price_action((int) ipriceAction[0]),current_price, current_time, ORDER_TYPE_SELL);                  
-   } else if(ipriceAction[0] > 7.0 && ipriceAction[0] <= 15.0) {
-      drawPurchase(get_price_action((int) ipriceAction[0]),current_price, current_time, ORDER_TYPE_BUY);                     
-   }
    debug(debugMessage);   
    
 }    
@@ -383,8 +363,8 @@ bool IPatrick::checkBuy()
    // kijun > current kumo   
    bool Buy_Condition_6 = (kijun_kumo == TREND_BULL);   
    
-   // price action
-   bool Buy_Condition_7 = true; //( ipriceAction[0] == 10.0 || ipriceAction[0] == 8.0 || ipriceAction[0] == 9.0 || ipriceAction[0] == 11.0 || ipriceAction[0] == 12.0);    
+   // price action. was removed.
+   bool Buy_Condition_7 = true;  
    
    // price tenkan
    bool Buy_Condition_8 = (price_tenkan == TREND_BULL);
@@ -443,8 +423,8 @@ bool IPatrick::checkSell()
    // kijun < current kumo   
    bool Sell_Condition_6 = (kijun_kumo == TREND_BEAR);     
    
-   // price action
-   bool Sell_Condition_7 = true; //(ipriceAction[0] == 1.0 || ipriceAction[0] == 2.0 || ipriceAction[0] == 3.0 || ipriceAction[0] == 4.0 || ipriceAction[0] == 5.0);    
+   // price action. was removed...
+   bool Sell_Condition_7 = true; 
 
    bool Sell_Condition_8 = (price_tenkan == TREND_BEAR);
    
@@ -530,7 +510,6 @@ bool IPatrick::checkClose()
          Close_Condition_1 = (current_price < ichiKijun[0]);
 //         Close_Condition_2 = (current_price < ichiSenkouA[0]);         
 //         Close_Condition_3 = (current_price < ichiSenkouB[0]);                          
-         //Close_Condition_4 = (ipriceAction[0] == 3.0);      
  //        Close_Condition_5 = (current_price < iband_middle[0]);
                 
       }
@@ -539,7 +518,6 @@ bool IPatrick::checkClose()
          Close_Condition_1 = (current_price > ichiKijun[0]);
 //         Close_Condition_2 = (current_price > ichiSenkouA[0]);         
 //         Close_Condition_3 = (current_price > ichiSenkouB[0]);         
-         //Close_Condition_4 = (ipriceAction[0] == 10.0);             
 //         Close_Condition_5 = (current_price > iband_middle[0]);         
       }          
                               
